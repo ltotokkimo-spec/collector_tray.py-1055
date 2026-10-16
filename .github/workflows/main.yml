@@ -1,0 +1,42 @@
+name: Build Windows EXE (32-bit & 64-bit)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86
+            label: 32bit
+          - arch: x64
+            label: 64bit
+
+    steps:
+      - name: 簽出原始碼
+        uses: actions/checkout@v4
+
+      - name: 安裝指定位元的 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+          architecture: ${{ matrix.arch }}
+
+      - name: 安裝套件
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pystray pillow
+
+      - name: 打包成 EXE
+        run: |
+          pyinstaller --onefile --windowed --name collector_tray_${{ matrix.label }} collector_tray.py
+
+      - name: 上傳打包結果
+        uses: actions/upload-artifact@v4
+        with:
+          name: collector_tray-${{ matrix.label }}
+          path: dist/collector_tray_${{ matrix.label }}.exe
